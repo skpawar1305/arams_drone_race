@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+import math
 from time import sleep
 
 #ros2
@@ -14,7 +15,8 @@ class OffboardControl(Node):
         self.i = 0
         self.timestamp = 0
         self.poslist = [0.0,0.0,0.0]
-        self.destlist = [[0.0,0.0,-0.25],[1.0,1.0,-0.25],[-1.0,1.0,-0.25],[1.0,0.0,-0.25]]
+        self.destlist = [[0.0,0.0,-1.0],[1.0,1.0,-1.0],[-1.0,1.0,-1.0],[1.0,0.0,-1.0]]
+        self.yaw_value = [180,45,-180,-45]
         self.control_mode_publisher = self.create_publisher(OffboardControlMode, '/OffboardControlMode_PubSubTopic', 10)
         self.trajectory_setpoint_publisher = self. create_publisher(TrajectorySetpoint, '/TrajectorySetpoint_PubSubTopic', 10)
         self.vehicle_command_publisher = self.create_publisher(VehicleCommand, '/VehicleCommand_PubSubTopic', 10)
@@ -54,7 +56,7 @@ class OffboardControl(Node):
         msg.x = self.destlist[self.i][0]
         msg.y = self.destlist[self.i][1]
         msg.z = self.destlist[self.i][2]
-        msg.yaw = -3.14
+        msg.yaw = float(math.radians(self.yaw_value[self.i]))
 
         self.trajectory_setpoint_publisher.publish(msg)
 
