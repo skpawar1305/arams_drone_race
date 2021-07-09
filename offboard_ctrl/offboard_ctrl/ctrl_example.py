@@ -3,6 +3,8 @@ import sys
 import math
 from time import sleep
 
+from pygame.constants import TEXTINPUT
+
 #ros2
 import rclpy
 from rclpy.node import Node
@@ -18,6 +20,14 @@ import cv2
 import numpy as np
 from cv_bridge import CvBridge
 
+#keyboard control
+import pygame
+
+pygame.init()
+window = pygame.display.set_mode((200, 200))
+rect = pygame.Rect(0, 0, 5, 5)
+rect.center = window.get_rect().center
+
 class OffboardControl(Node):
     def __init__(self):
         super().__init__('offboard_control')
@@ -26,7 +36,6 @@ class OffboardControl(Node):
         self.timestamp = 0
         self.poslist = [0.0,0.0,0.0]
         self.destlist = [[0.0,0.0,-1.0],[1.0,1.0,-1.0],[-1.0,1.0,-1.0],[1.0,0.0,-1.0]]
-        self.yaw_value = [180,45,-180,-45]
         self.control_mode_publisher = self.create_publisher(OffboardControlMode, '/OffboardControlMode_PubSubTopic', 10)
         self.trajectory_setpoint_publisher = self. create_publisher(TrajectorySetpoint, '/TrajectorySetpoint_PubSubTopic', 10)
         self.vehicle_command_publisher = self.create_publisher(VehicleCommand, '/VehicleCommand_PubSubTopic', 10)
@@ -35,6 +44,15 @@ class OffboardControl(Node):
         self.timer = self.create_timer(0.1, self.run)
         self.pub = self.create_publisher(Image, "processed", 10)
         self.create_subscription(Image, "/camera/image_raw", self.img_cb, 10)
+
+        self.rotate_anti = False
+        self.rotate_clock = False
+        self.move_forward = False
+        self.move_backward = False
+        self.move_left = False
+        self.move_right = False
+
+        self.yaw_value = 0.0
 
     def pos_callback(self, msg):
         self.poslist = [msg.x, msg.y, msg.z]
@@ -63,12 +81,71 @@ class OffboardControl(Node):
         self.vehicle_command(VehicleCommand().VEHICLE_CMD_COMPONENT_ARM_DISARM,0.0,0.0)
 
     def trajectorysetpoint(self):
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); #sys.exit() if sys is imported
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_a:
+                    self.rotate_anti = True
+                if event.key == pygame.K_d:
+                    self.rotate_clock = True
+                if event.key == pygame.K_w:
+                    self.move_forward = True
+                if event.key == pygame.K_s:
+                    self.move_backward = True
+                if event.key == pygame.K_q:
+                    self.move_left = True
+                if event.key == pygame.K_e:
+                    self.move_right = True
+
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_a:
+                    self.rotate_anti = False
+                if event.key == pygame.K_d:
+                    self.rotate_clock = False
+                if event.key == pygame.K_w:
+                    self.move_forward = False
+                if event.key == pygame.K_s:
+                    self.move_backward = False
+                if event.key == pygame.K_q:
+                    self.move_left = False
+                if event.key == pygame.K_e:
+                    self.move_right = False
+
+        if self.rotate_anti:
+            rotate_value = -10.0
+        elif self.rotate_clock:
+            rotate_value = 10.0
+        else:
+            rotate_value = 0.0
+        if self.move_forward:
+            move_fb = 3.0
+        elif self.move_backward:
+            move_fb = -3.0
+        else:
+            move_fb = 0.0
+        if self.move_left:
+            move_lr = -3.0
+        elif self.move_right:
+            move_lr = 3.0
+        else:
+            move_lr = 0.0
+
+        self.yaw_value += rotate_value
+
+        if self.yaw_value > 355:
+            self.yaw_value -= 360
+        if self.yaw_value < 0:
+            self.yaw_value += 360
+
         msg = TrajectorySetpoint()
         msg.timestamp = self.timestamp
-        msg.x = self.destlist[self.i][0]
-        msg.y = self.destlist[self.i][1]
-        msg.z = self.destlist[self.i][2]
-        msg.yaw = float(math.radians(self.yaw_value[self.i]))
+        msg.x = self.poslist[0] + move_fb * math.cos(math.radians(self.yaw_value)) + move_lr * math.cos(math.radians(self.yaw_value + 90))
+        msg.y = self.poslist[1] + move_fb * math.sin(math.radians(self.yaw_value)) + move_lr * math.sin(math.radians(self.yaw_value + 90))
+        msg.z = -2.2
+
+        msg.yaw = math.radians(self.yaw_value)
 
         self.trajectory_setpoint_publisher.publish(msg)
 
@@ -170,12 +247,6 @@ class OffboardControl(Node):
 
             box = cv2.boxPoints(rect)        		    # find 4 corner points
             box = np.int0(box)                  		# convert box points to integer
-            
-            # print(rows, cols)
-            centre_x1    = float(contours[0][0][0][0]) - 160
-            centre_x2    = float(contours[0][1][0][0]) - 160
-
-            frame_pos = (centre_x1 + centre_x2) / 2
 
             if width > 3.0 and height > 3.0:
                 cv2.drawContours(msg, [box], 0, (255, 255, 255), 2)
