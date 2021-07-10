@@ -3,8 +3,6 @@ import sys
 import math
 from time import sleep
 
-from pygame.constants import TEXTINPUT
-
 #ros2
 import rclpy
 from rclpy.node import Node
@@ -20,14 +18,6 @@ import cv2
 import numpy as np
 from cv_bridge import CvBridge
 
-#keyboard control
-import pygame
-
-pygame.init()
-window = pygame.display.set_mode((200, 200))
-rect = pygame.Rect(0, 0, 5, 5)
-rect.center = window.get_rect().center
-
 class OffboardControl(Node):
     def __init__(self):
         super().__init__('offboard_control')
@@ -35,7 +25,6 @@ class OffboardControl(Node):
         self.i = 0
         self.timestamp = 0
         self.poslist = [0.0,0.0,0.0]
-        self.destlist = [[0.0,0.0,-1.0],[1.0,1.0,-1.0],[-1.0,1.0,-1.0],[1.0,0.0,-1.0]]
         self.control_mode_publisher = self.create_publisher(OffboardControlMode, '/OffboardControlMode_PubSubTopic', 10)
         self.trajectory_setpoint_publisher = self. create_publisher(TrajectorySetpoint, '/TrajectorySetpoint_PubSubTopic', 10)
         self.vehicle_command_publisher = self.create_publisher(VehicleCommand, '/VehicleCommand_PubSubTopic', 10)
@@ -52,7 +41,10 @@ class OffboardControl(Node):
         self.move_left = False
         self.move_right = False
 
-        self.yaw_value = 0.0
+        self.yaw_value = 90.0
+
+        self.step = 0
+        self.gate = 1
 
     def pos_callback(self, msg):
         self.poslist = [msg.x, msg.y, msg.z]
@@ -69,9 +61,6 @@ class OffboardControl(Node):
             self.vehicle_command(VehicleCommand().VEHICLE_CMD_DO_SET_MODE,1.0,6.0)
             self.arm()
 
-        if ( (abs(self.destlist[self.i][0] - self.poslist[0]) < 0.2) & (abs(self.destlist[self.i][1] - self.poslist[1]) < 0.2) & (abs(self.destlist[self.i][2] - self.poslist[2]) < 0.2) ):
-            self.i = (self.i + 1) % 4
-
         self.c += 1
 
     def arm(self):
@@ -82,59 +71,28 @@ class OffboardControl(Node):
 
     def trajectorysetpoint(self):
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit(); #sys.exit() if sys is imported
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_a:
-                    self.rotate_anti = True
-                if event.key == pygame.K_d:
-                    self.rotate_clock = True
-                if event.key == pygame.K_w:
-                    self.move_forward = True
-                if event.key == pygame.K_s:
-                    self.move_backward = True
-                if event.key == pygame.K_q:
-                    self.move_left = True
-                if event.key == pygame.K_e:
-                    self.move_right = True
-
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_a:
-                    self.rotate_anti = False
-                if event.key == pygame.K_d:
-                    self.rotate_clock = False
-                if event.key == pygame.K_w:
-                    self.move_forward = False
-                if event.key == pygame.K_s:
-                    self.move_backward = False
-                if event.key == pygame.K_q:
-                    self.move_left = False
-                if event.key == pygame.K_e:
-                    self.move_right = False
-
         if self.rotate_anti:
-            rotate_value = -10.0
+            rotate_value = -1.8
         elif self.rotate_clock:
-            rotate_value = 10.0
+            rotate_value = 1.8
         else:
             rotate_value = 0.0
         if self.move_forward:
-            move_fb = 3.0
+            move_fb = 1.0
         elif self.move_backward:
-            move_fb = -3.0
+            move_fb = -1.0
         else:
             move_fb = 0.0
         if self.move_left:
-            move_lr = -3.0
+            move_lr = -0.5
         elif self.move_right:
-            move_lr = 3.0
+            move_lr = 0.5
         else:
             move_lr = 0.0
 
         self.yaw_value += rotate_value
 
-        if self.yaw_value > 355:
+        if self.yaw_value > 359.9:
             self.yaw_value -= 360
         if self.yaw_value < 0:
             self.yaw_value += 360
@@ -182,23 +140,21 @@ class OffboardControl(Node):
         out_msg.header.frame_id = msg.header.frame_id
         self.pub.publish(out_msg)
 
-    def find_gates(self, msg):
-        gate = 1
-        
+    def find_gates(self, msg):        
         # Blue
-        if gate == 1:
+        if self.gate == 1:
             hsv_val = [116,36,48,125,255,255]
         # Green
-        elif gate == 2:
+        elif self.gate == 2:
             hsv_val = [32,42,54,60,255,255]
         # Purple
-        elif gate == 3:
+        elif self.gate == 3:
             hsv_val = [148,35,43,169,255,255]
         # Red
-        elif gate == 4:
+        elif self.gate == 4:
             hsv_val = [0,41,41,0,255,255]
         # Yellow
-        elif gate == 5:
+        elif self.gate == 5:
             hsv_val = [26,42,42,32,255,238]
 
         # blur the image with a 3x3 kernel to remove noise
@@ -210,17 +166,138 @@ class OffboardControl(Node):
 
         contours, hierarchy = cv2.findContours(frame_thr, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        if len(contours) != 0:
-            # draw in blue the contours that were founded
-            cv2.drawContours(msg, contours, -1, 255, 3)
+        if self.step == 0:
+            print("step0")
+            if abs(self.poslist[2] + 2.2) < 0.2:
+                self.step += 1
 
-            # find the biggest countour (c) by the area
-            c = max(contours, key = cv2.contourArea)
-            x,y,w,h = cv2.boundingRect(c)
+        if self.step == 0.5:
+            print("step0.5")
+            if len(contours) != 0:
+                # draw in blue the contours that were founded
+                cv2.drawContours(msg, contours, -1, 255, 3)
 
-            if h > 10:
-                # draw the biggest contour (c) in green
-                cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
+                # find the biggest countour (c) by the area
+                c = max(contours, key = cv2.contourArea)
+                x,y,w,h = cv2.boundingRect(c)
+
+                if h > 10:
+                    # draw the biggest contour (c) in green
+                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
+                    self.move_forward = False
+                    self.move_left = False
+                    self.rotate_anti = False
+                    self.step = 1
+            else:
+                self.move_forward = True
+                self.move_left = True
+                self.rotate_anti = True
+
+        if self.step == 1:
+            print("step1")
+            if len(contours) != 0:
+                # draw in blue the contours that were founded
+                cv2.drawContours(msg, contours, -1, 255, 3)
+
+                # find the biggest countour (c) by the area
+                c = max(contours, key = cv2.contourArea)
+                x,y,w,h = cv2.boundingRect(c)
+
+                if h > 10:
+                    # draw the biggest contour (c) in green
+                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
+
+                if x > 10 & (x+w) < 310:
+                    if x + w/2 < 150:
+                        self.rotate_clock = False
+                        self.rotate_anti = True
+                    elif x + w/2 > 170:
+                        self.rotate_anti = False
+                        self.rotate_clock = True
+                    else:
+                        self.rotate_anti = False
+                        self.rotate_clock = False
+                        self.step += 1
+                else:
+                    self.rotate_clock = False
+                    self.rotate_anti = True
+                        
+            else:
+                self.rotate_clock = False
+                self.rotate_anti = True
+                self.rotate_clock = False
+
+        if self.step == 2:
+            print("step2")
+            if len(contours) != 0:
+                # draw in blue the contours that were founded
+                cv2.drawContours(msg, contours, -1, 255, 3)
+
+                # find the biggest countour (c) by the area
+                c = max(contours, key = cv2.contourArea)
+                x,y,w,h = cv2.boundingRect(c)
+
+                if h > 10:
+                    # draw the biggest contour (c) in green
+                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
+
+                if h < 155:
+                    self.move_forward = True
+                    self.move_backward = False
+                elif h > 165:
+                    self.move_backward = True
+                    self.move_forward = False
+                else:
+                    self.move_forward = False
+                    self.move_backward = False
+                    self.step += 1
+
+        if self.step == 3:
+            print("step3")
+            if len(contours) != 0:
+                # draw in blue the contours that were founded
+                cv2.drawContours(msg, contours, -1, 255, 3)
+
+                # find the biggest countour (c) by the area
+                c = max(contours, key = cv2.contourArea)
+                x,y,w,h = cv2.boundingRect(c)
+
+                if h > 10:
+                    # draw the biggest contour (c) in green
+                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
+
+                if w/h < 1.3:
+                    self.move_forward = True
+                    self.move_left = True
+                    self.rotate_clock = True
+                else:
+                    self.move_forward = False
+                    self.move_left = False
+                    self.rotate_clock = False
+                    self.step += 1
+
+        if self.step == 4:
+            print("step4")
+            if len(contours) != 0:
+                # draw in blue the contours that were founded
+                cv2.drawContours(msg, contours, -1, 255, 3)
+
+                # find the biggest countour (c) by the area
+                c = max(contours, key = cv2.contourArea)
+                x,y,w,h = cv2.boundingRect(c)
+
+                if h > 10:
+                    # draw the biggest contour (c) in green
+                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
+                    self.move_forward = True
+                else:
+                    self.move_forward = False
+                    self.step = 0.5
+                    self.gate += 1
+            else:
+                self.move_forward = False
+                self.step = 0.5
+                self.gate += 1
 
         return msg
 
