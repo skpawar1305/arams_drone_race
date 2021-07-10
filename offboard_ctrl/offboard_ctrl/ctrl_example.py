@@ -239,17 +239,10 @@ class OffboardControl(Node):
 
         contours, _ = cv2.findContours(frame_thr, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        # cycle through all the contours; find the surrounding, rotated rectangles for all contours
+        # cycle through all the contours; find the surrounding, rectangles for all contours
         for contour in contours:
-            rect = cv2.minAreaRect(contour)      		    # find rotated rectangle
-            height = rect[1][1]                         # get height of rotated rectangle
-            width = rect[1][0]                          # get width of rotated rectangle
-
-            box = cv2.boxPoints(rect)        		    # find 4 corner points
-            box = np.int0(box)                  		# convert box points to integer
-
-            if width > 3.0 and height > 3.0:
-                cv2.drawContours(msg, [box], 0, (255, 255, 255), 2)
+            x,y,w,h = cv2.boundingRect(contour)      		    # find rectangle
+            cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
 
         return msg
 
