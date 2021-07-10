@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'ctrl_example = offboard_ctrl.ctrl_example:main',
+            'manual_ctrl = offboard_ctrl.manual_ctrl:main',
+            'automatic_ctrl = offboard_ctrl.automatic_ctrl:main',
         ],
     },
 )
