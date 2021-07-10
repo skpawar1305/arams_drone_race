@@ -43,6 +43,10 @@ class OffboardControl(Node):
 
         self.yaw_value = 90.0
 
+        self.rv = 1.2
+        self.mfb = 2.0
+        self.mlr = 2.0
+
         self.step = 0
         self.gate = 1
 
@@ -72,21 +76,21 @@ class OffboardControl(Node):
     def trajectorysetpoint(self):
 
         if self.rotate_anti:
-            rotate_value = -1.8
+            rotate_value = -self.rv
         elif self.rotate_clock:
-            rotate_value = 1.8
+            rotate_value = self.rv
         else:
             rotate_value = 0.0
         if self.move_forward:
-            move_fb = 1.0
+            move_fb = self.mfb
         elif self.move_backward:
-            move_fb = -1.0
+            move_fb = -self.mfb
         else:
             move_fb = 0.0
         if self.move_left:
-            move_lr = -0.5
+            move_lr = -self.mlr
         elif self.move_right:
-            move_lr = 0.5
+            move_lr = self.mlr
         else:
             move_lr = 0.0
 
@@ -101,7 +105,7 @@ class OffboardControl(Node):
         msg.timestamp = self.timestamp
         msg.x = self.poslist[0] + move_fb * math.cos(math.radians(self.yaw_value)) + move_lr * math.cos(math.radians(self.yaw_value + 90))
         msg.y = self.poslist[1] + move_fb * math.sin(math.radians(self.yaw_value)) + move_lr * math.sin(math.radians(self.yaw_value + 90))
-        msg.z = -2.2
+        msg.z = -2.0
 
         msg.yaw = math.radians(self.yaw_value)
 
@@ -168,10 +172,13 @@ class OffboardControl(Node):
 
         if self.step == 0:
             print("step0")
-            if abs(self.poslist[2] + 2.2) < 0.2:
+            if abs(self.poslist[2] + 2.0) < 0.2:
                 self.step += 1
 
         if self.step == 0.5:
+            self.rv = 1.8
+            self.mfb = 3.0
+            self.mlr = 0.2
             print("step0.5")
             if len(contours) != 0:
                 # draw in blue the contours that were founded
@@ -194,6 +201,9 @@ class OffboardControl(Node):
                 self.rotate_anti = True
 
         if self.step == 1:
+            self.rv = 1.2
+            self.mfb = 2.0
+            self.mlr = 2.0
             print("step1")
             if len(contours) != 0:
                 # draw in blue the contours that were founded
@@ -250,9 +260,36 @@ class OffboardControl(Node):
                 else:
                     self.move_forward = False
                     self.move_backward = False
-                    self.step += 1
+                    self.step += 0.5
+
+        if self.step == 2.5:
+            self.rv = 1.8
+            print("step1")
+            if len(contours) != 0:
+                # draw in blue the contours that were founded
+                cv2.drawContours(msg, contours, -1, 255, 3)
+
+                # find the biggest countour (c) by the area
+                c = max(contours, key = cv2.contourArea)
+                x,y,w,h = cv2.boundingRect(c)
+
+                if h > 10:
+                    # draw the biggest contour (c) in green
+                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
+
+                if x + w/2 < 150:
+                    self.rotate_clock = False
+                    self.rotate_anti = True
+                elif x + w/2 > 170:
+                    self.rotate_anti = False
+                    self.rotate_clock = True
+                else:
+                    self.rotate_anti = False
+                    self.rotate_clock = False
+                    self.step += 0.5
 
         if self.step == 3:
+            self.mlr = 4.0
             print("step3")
             if len(contours) != 0:
                 # draw in blue the contours that were founded
@@ -275,8 +312,11 @@ class OffboardControl(Node):
                     self.move_left = False
                     self.rotate_clock = False
                     self.step += 1
+            else:
+                self.step += 1
 
         if self.step == 4:
+            self.mlr = 2.0
             print("step4")
             if len(contours) != 0:
                 # draw in blue the contours that were founded
