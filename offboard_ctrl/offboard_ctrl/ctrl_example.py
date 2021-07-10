@@ -187,55 +187,26 @@ class OffboardControl(Node):
         
         # Blue
         if gate == 1:
-            lower_h = 116
-            lower_s = 36
-            lower_v = 48
-            upper_h = 125
-            upper_s = 255
-            upper_v = 255
-            
+            hsv_val = [116,36,48,125,255,255]
         # Green
-        if gate == 2:
-            lower_h = 32
-            lower_s = 42
-            lower_v = 54
-            upper_h = 60
-            upper_s = 255
-            upper_v = 255
-            
+        elif gate == 2:
+            hsv_val = [32,42,54,60,255,255]
         # Purple
-        if gate == 3:
-            lower_h = 148
-            lower_s = 35
-            lower_v = 43
-            upper_h = 169
-            upper_s = 255
-            upper_v = 255
-            
+        elif gate == 3:
+            hsv_val = [148,35,43,169,255,255]
         # Red
-        if gate == 4:
-            lower_h = 0
-            lower_s = 41
-            lower_v = 41
-            upper_h = 0
-            upper_s = 255
-            upper_v = 255
-            
+        elif gate == 4:
+            hsv_val = [0,41,41,0,255,255]
         # Yellow
-        if gate == 5:
-            lower_h = 26
-            lower_s = 42
-            lower_v = 42
-            upper_h = 32
-            upper_s = 255
-            upper_v = 238
+        elif gate == 5:
+            hsv_val = [26,42,42,32,255,238]
 
         # blur the image with a 3x3 kernel to remove noise
         frame_blur = cv2.blur(msg, (3, 3))
 
         # convert to HSV and apply HSV threshold to image
         frame_hsv = cv2.cvtColor(frame_blur, cv2.COLOR_BGR2HSV)
-        frame_thr = cv2.inRange(frame_hsv, (lower_h, lower_s, lower_v), (upper_h, upper_s, upper_v))
+        frame_thr = cv2.inRange(frame_hsv, (hsv_val[0], hsv_val[1], hsv_val[2]), (hsv_val[3], hsv_val[4], hsv_val[5]))
 
         contours, hierarchy = cv2.findContours(frame_thr, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
