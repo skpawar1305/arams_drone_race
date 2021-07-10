@@ -183,7 +183,7 @@ class OffboardControl(Node):
         self.pub.publish(out_msg)
 
     def find_gates(self, msg):
-        gate = 5
+        gate = 1
         
         # Blue
         if gate == 1:
@@ -237,12 +237,19 @@ class OffboardControl(Node):
         frame_hsv = cv2.cvtColor(frame_blur, cv2.COLOR_BGR2HSV)
         frame_thr = cv2.inRange(frame_hsv, (lower_h, lower_s, lower_v), (upper_h, upper_s, upper_v))
 
-        contours, _ = cv2.findContours(frame_thr, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(frame_thr, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        # cycle through all the contours; find the surrounding, rectangles for all contours
-        for contour in contours:
-            x,y,w,h = cv2.boundingRect(contour)      		    # find rectangle
-            cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
+        if len(contours) != 0:
+            # draw in blue the contours that were founded
+            cv2.drawContours(msg, contours, -1, 255, 3)
+
+            # find the biggest countour (c) by the area
+            c = max(contours, key = cv2.contourArea)
+            x,y,w,h = cv2.boundingRect(c)
+
+            if h > 10:
+                # draw the biggest contour (c) in green
+                cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
 
         return msg
 
