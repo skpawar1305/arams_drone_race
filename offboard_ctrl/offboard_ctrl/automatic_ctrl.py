@@ -3,8 +3,6 @@ import sys
 import math
 from time import sleep
 
-from numpy.core.numeric import NaN
-
 #ros2
 import rclpy
 from rclpy.node import Node
@@ -101,10 +99,8 @@ class OffboardControl(Node):
 
         msg = TrajectorySetpoint()
         msg.timestamp = self.timestamp
-        msg.x = NaN
-        msg.y = NaN
-        msg.vx = move_fb * math.cos(math.radians(self.yaw_value)) + move_lr * math.cos(math.radians(self.yaw_value + 90))
-        msg.vy = move_fb * math.sin(math.radians(self.yaw_value)) + move_lr * math.sin(math.radians(self.yaw_value + 90))
+        msg.x = self.poslist[0] + move_fb * math.cos(math.radians(self.yaw_value)) + move_lr * math.cos(math.radians(self.yaw_value + 90))
+        msg.y = self.poslist[1] + move_fb * math.sin(math.radians(self.yaw_value)) + move_lr * math.sin(math.radians(self.yaw_value + 90))
         msg.z = -2.2
 
         msg.yaw = math.radians(self.yaw_value)
