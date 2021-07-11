@@ -57,6 +57,7 @@ class OffboardControl(Node):
 
     def lidar_callback(self, msg):
         self.lidar_dist = msg
+        print(msg.ranges[180])
 
     def pos_callback(self, msg):
         self.poslist = [msg.x, msg.y, msg.z]
