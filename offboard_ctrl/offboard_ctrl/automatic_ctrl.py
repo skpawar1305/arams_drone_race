@@ -323,13 +323,14 @@ class OffboardControl(Node):
                 if self.gate == 6:
                     self.gate = 1
 
-        i = 166
-        for i in range(196):
-            if self.lidar_dist.ranges[i] > 1.5:
-                if self.lidar_dist.ranges[i] < 2.5:
-                    self.move_right = True
-                else:
-                    self.move_right = False
+        if self.step > 0:
+            i = 166
+            for i in range(196):
+                if self.lidar_dist.ranges[i] > 1.5:
+                    if self.lidar_dist.ranges[i] < 2.5:
+                        self.move_right = True
+                    else:
+                        self.move_right = False
 
         return msg
 
