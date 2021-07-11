@@ -50,6 +50,7 @@ class OffboardControl(Node):
 
         self.step = 0
         self.gate = 1
+        self.final_pose = [0.0,0.0,0.0]
 
     def lidar_callback(self, msg):
         self.lidar_dist = msg
@@ -61,14 +62,37 @@ class OffboardControl(Node):
         self.timestamp = msg.timestamp
 
     def run(self):
-        self.trajectorysetpoint()
-        self.offboard_control_mode()
+        if self.gate <= 6:
+            self.trajectorysetpoint()
+            self.offboard_control_mode()
 
-        if self.c == 20:
-            self.vehicle_command(VehicleCommand().VEHICLE_CMD_DO_SET_MODE,1.0,6.0)
-            self.arm()
+            if self.c == 20:
+                self.vehicle_command(VehicleCommand().VEHICLE_CMD_DO_SET_MODE,1.0,6.0)
+                self.arm()
 
-        self.c += 1
+            self.c += 1
+
+        if self.gate == 6:
+            print("Going Home")
+            if abs(self.poslist[2] + 5) < 0.2:
+                self.gate = 7
+
+        elif self.gate == 7:
+            x1 = 0.0
+            y1 = 0.0
+            self.yaw1 = 90.0
+
+            self.dest = [x1,y1,-5.0]
+            self.trajectory_go_home()
+            self.offboard_control_mode()
+            if self.c == 20:
+                self.vehicle_command(VehicleCommand().VEHICLE_CMD_DO_SET_MODE,1.0,6.0)
+                self.arm()
+            self.c += 1
+            if abs(self.poslist[0] - x1) < 0.2 and abs(self.poslist[1] - y1) < 0.2 and abs(self.poslist[2] + 5) < 0.2:
+                self.vehicle_command(VehicleCommand().VEHICLE_CMD_COMPONENT_ARM_DISARM,0.0,0.0)
+                self.gate = 8
+                print("Reached Home")
 
     def arm(self):
         self.vehicle_command(VehicleCommand().VEHICLE_CMD_COMPONENT_ARM_DISARM,1.0,0.0)
@@ -108,9 +132,24 @@ class OffboardControl(Node):
         msg.timestamp = self.timestamp
         msg.x = self.poslist[0] + move_fb * math.cos(math.radians(self.yaw_value)) + move_lr * math.cos(math.radians(self.yaw_value + 90))
         msg.y = self.poslist[1] + move_fb * math.sin(math.radians(self.yaw_value)) + move_lr * math.sin(math.radians(self.yaw_value + 90))
-        msg.z = -1.7
+        if self.gate < 6:
+            msg.z = -1.7
+        else:
+            msg.z = -5.0
 
         msg.yaw = math.radians(self.yaw_value)
+
+        self.trajectory_setpoint_publisher.publish(msg)
+
+    def trajectory_go_home(self):
+
+        msg = TrajectorySetpoint()
+        msg.timestamp = self.timestamp
+        msg.x = self.dest[0]
+        msg.y = self.dest[1]
+        msg.z = self.dest[2]
+
+        msg.yaw = math.radians(self.yaw1)
 
         self.trajectory_setpoint_publisher.publish(msg)
 
@@ -141,11 +180,12 @@ class OffboardControl(Node):
         self.vehicle_command_publisher.publish(msg)
 
     def img_cb(self, msg):
-        cv_bridge = CvBridge()
-        cv_frame = cv_bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        out_msg = cv_bridge.cv2_to_imgmsg(self.find_gates(cv_frame))
-        out_msg.header.frame_id = msg.header.frame_id
-        self.pub.publish(out_msg)
+        if self.gate < 6:
+            cv_bridge = CvBridge()
+            cv_frame = cv_bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+            out_msg = cv_bridge.cv2_to_imgmsg(self.find_gates(cv_frame))
+            out_msg.header.frame_id = msg.header.frame_id
+            self.pub.publish(out_msg)
 
     def find_gates(self, msg):      
 
@@ -175,6 +215,9 @@ class OffboardControl(Node):
         # Yellow
         elif self.gate == 5:
             hsv_val = [26,42,42,32,255,238]
+        # Blank
+        elif self.gate == 6:
+            hsv_val = [0,0,0,0,0,0]
 
         # blur the image with a 3x3 kernel to remove noise
         frame_blur = cv2.blur(msg, (3, 3))
@@ -398,7 +441,7 @@ class OffboardControl(Node):
                 self.step = 0.5
                 self.gate += 1
                 if self.gate == 6:
-                    self.gate = 1
+                    self.mfb = 6.5
 
         return msg
 
