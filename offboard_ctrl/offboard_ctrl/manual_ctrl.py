@@ -14,7 +14,7 @@ from px4_msgs.msg import Timesync, TrajectorySetpoint, VehicleCommand, OffboardC
 from numpy.core.arrayprint import set_string_function
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, LaserScan
 
 import cv2
 import numpy as np
@@ -40,6 +40,7 @@ class OffboardControl(Node):
         self.trajectory_setpoint_publisher = self. create_publisher(TrajectorySetpoint, '/TrajectorySetpoint_PubSubTopic', 10)
         self.vehicle_command_publisher = self.create_publisher(VehicleCommand, '/VehicleCommand_PubSubTopic', 10)
         self.timesync_sub = self.create_subscription(Timesync,'/Timesync_PubSubTopic', self.sub_callback,10)
+        self.lidar_sub = self.create_subscription(LaserScan, '/lidar/scan', self.lidar_callback, 10)
         self.position_sub = self.create_subscription(VehicleLocalPosition, '/VehicleLocalPosition_PubSubTopic', self.pos_callback, 10)
         self.timer = self.create_timer(0.1, self.run)
         self.pub = self.create_publisher(Image, "processed", 10)
@@ -53,6 +54,9 @@ class OffboardControl(Node):
         self.move_right = False
 
         self.yaw_value = 0.0
+
+    def lidar_callback(self, msg):
+        self.lidar_dist = msg
 
     def pos_callback(self, msg):
         self.poslist = [msg.x, msg.y, msg.z]
