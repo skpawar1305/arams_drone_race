@@ -300,18 +300,23 @@ class OffboardControl(Node):
                 self.step = 4
 
         if self.step == 3.5:
+            self.rv = 1.2
+            self.mlr = 2.0
             print("step3.5")
             self.move_right = True
             if len(contours2) == 0:
-                #self.move_forward = True
-                self.step = 4
+                self.rotate_anti = True
+                self.step = 0.5
+                self.gate += 1
+                if self.gate == 6:
+                    self.gate = 1
 
         if self.step == 4:
             self.rv = 1.2
             self.mlr = 2.0
             print("step4")
 
-            if len(contours2) == 0:
+            if len(contours) == 0:
                 self.rotate_anti = True
                 self.step = 0.5
                 self.gate += 1
