@@ -12,7 +12,7 @@ from px4_msgs.msg import Timesync, TrajectorySetpoint, VehicleCommand, OffboardC
 from numpy.core.arrayprint import set_string_function
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image, LaserScan
+from sensor_msgs.msg import Image
 
 import cv2
 import numpy as np
@@ -28,7 +28,6 @@ class OffboardControl(Node):
         self.control_mode_publisher = self.create_publisher(OffboardControlMode, '/OffboardControlMode_PubSubTopic', 10)
         self.trajectory_setpoint_publisher = self. create_publisher(TrajectorySetpoint, '/TrajectorySetpoint_PubSubTopic', 10)
         self.vehicle_command_publisher = self.create_publisher(VehicleCommand, '/VehicleCommand_PubSubTopic', 10)
-        self.lidar_sub = self.create_subscription(LaserScan, '/lidar/scan', self.lidar_callback, 10)
         self.timesync_sub = self.create_subscription(Timesync,'/Timesync_PubSubTopic', self.sub_callback,10)
         self.position_sub = self.create_subscription(VehicleLocalPosition, '/VehicleLocalPosition_PubSubTopic', self.pos_callback, 10)
         self.timer = self.create_timer(0.1, self.run)
@@ -53,9 +52,6 @@ class OffboardControl(Node):
 
     def pos_callback(self, msg):
         self.poslist = [msg.x, msg.y, msg.z]
-
-    def lidar_callback(self, msg):
-        self.lidar_dist = msg
 
     def sub_callback(self, msg):
         self.timestamp = msg.timestamp
@@ -90,10 +86,10 @@ class OffboardControl(Node):
             move_fb = -self.mfb
         else:
             move_fb = 0.0
-        if self.move_left:
-            move_lr = -self.mlr
-        elif self.move_right:
+        if self.move_right:
             move_lr = self.mlr
+        elif self.move_left:
+            move_lr = -self.mlr
         else:
             move_lr = 0.0
 
@@ -163,9 +159,6 @@ class OffboardControl(Node):
         # Yellow
         elif self.gate == 5:
             hsv_val = [26,42,42,32,255,238]
-        # Blank
-        elif self.gate == 6:
-            hsv_val = [0,0,0,0,0,0]
 
         # blur the image with a 3x3 kernel to remove noise
         frame_blur = cv2.blur(msg, (3, 3))
@@ -213,6 +206,7 @@ class OffboardControl(Node):
             self.rv = 1.2
             self.mfb = 2.0
             self.mlr = 2.0
+            self.move_right = False
             print("step1")
             if len(contours) != 0:
                 # draw in blue the contours that were found
@@ -236,7 +230,7 @@ class OffboardControl(Node):
                     elif 150 <= x + w/2 <= 170:
                         self.rotate_anti = False
                         self.rotate_clock = False
-                        self.step += 1
+                        self.step = 2
                     else:
                         self.rotate_anti = True
                         self.rotate_clock = False
@@ -263,10 +257,28 @@ class OffboardControl(Node):
                     # draw the biggest contour (c) in green
                     cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
 
-                if h < 215:
+                if x > 10 & (x+w) < 310:
+                    if x + w/2 < 150:
+                        self.rotate_clock = False
+                        self.rotate_anti = True
+                    elif x + w/2 > 170:
+                        self.rotate_anti = False
+                        self.rotate_clock = True
+                    elif 150 <= x + w/2 <= 170:
+                        self.rotate_anti = False
+                        self.rotate_clock = False
+                        self.step = 2
+                    else:
+                        self.rotate_anti = True
+                        self.rotate_clock = False
+                else:
+                    self.rotate_clock = False
+                    self.rotate_anti = True
+
+                if h < 155:
                     self.move_forward = True
                     self.move_backward = False
-                elif h > 225:
+                elif h > 165:
                     self.move_backward = True
                     self.move_forward = False
                 else:
@@ -277,9 +289,9 @@ class OffboardControl(Node):
                 self.step = 3
 
         if self.step == 3:
-            self.rv = 4.2
-            self.mlr = 4.0
-            self.mfb = 2.8
+            self.rv = 2.2
+            self.mlr = 2.0
+            self.mfb = 2.2
             print("step3")
             self.check = 3.31
             if len(contours) != 0:
@@ -293,17 +305,66 @@ class OffboardControl(Node):
                 if h > 10:
                     # draw the biggest contour (c) in green
                     cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
-                if w/h < 1.25:
-                    self.step = 3.5
-            else:
-                self.move_forward = False
-                self.move_left = False
-                self.rotate_clock = False
-                self.step = 4
+                if w/h < 1.45:
+                    self.step = 3.3
+                else:
+                    self.move_forward = True
+                    self.move_left = False
+                    self.rotate_clock = False
+                    self.step = 4
+
+        if self.step == 3.3:
+            self.move_right = True
+            self.rv = 1.2
+            self.mfb = 1.0
+            self.mlr = 1.5
+            print("step3.3")
+            if len(contours) != 0:
+                # draw in blue the contours that were found
+                cv2.drawContours(msg, contours, -1, 255, 3)
+
+                # find the biggest countour (c) by the area
+                c = max(contours, key = cv2.contourArea)
+                x,y,w,h = cv2.boundingRect(c)
+
+                if h > 10:
+                    # draw the biggest contour (c) in green
+                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
+
+                if x + w/2 < 140:
+                    self.move_right = False
+                    self.rotate_clock = False
+                    self.rotate_anti = True
+                elif x + w/2 > 180:
+                    self.move_right = False
+                    self.rotate_anti = False
+                    self.rotate_clock = True
+                elif 140 <= x + w/2 <= 180:
+                    self.rotate_anti = False
+                    self.rotate_clock = False
+                else:
+                    self.step = 1
+
+                if h < 155:
+                    self.move_forward = True
+                    self.move_backward = False
+                elif h > 165:
+                    self.move_backward = True
+                    self.move_forward = False
+                else:
+                    self.move_forward = False
+                    self.move_backward = False
+
+                if w/h > 1.85:
+                    self.move_right = False
+                    self.rotate_clock = False
+                    self.rotate_anti = False
+                    self.step = 4
 
         if self.step == 3.5:
             self.rv = 1.2
             self.mlr = 3.0
+            self.mfb = 3.0
             print("step3.5")
             self.move_right = True
             if len(contours) != 0:
@@ -320,13 +381,15 @@ class OffboardControl(Node):
                     # draw the biggest contour (c) in green
                     cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
             if len(contours2) == 0:
-                self.move_right = True
+                #self.move_right = True
                 self.step = 4
 
         if self.step == 4:
-            self.rv = 1.2
+            self.rv = 0.6
             self.mlr = 2.0
             print("step4")
+            self.move_right = False
+            self.rotate_anti = False
 
             if len(contours) != 0:
                 self.move_forward = True
@@ -344,21 +407,8 @@ class OffboardControl(Node):
             else:
                 self.step = 0.5
                 self.gate += 1
-
-        if self.step > 0:
-            i = 161
-            for i in range(201):
-                if self.lidar_dist.ranges[i] > 1.5:
-                    if self.lidar_dist.ranges[i] < 5.5:
-                        self.move_right = True
-                        if self.step == 3.5:
-                            self.mfb = 0.3
-                            self.step = 4
-                            self.move_right = True
-                            self.move_forward = True
-                            self.rotate_anti = True
-                    else:
-                        self.move_right = False
+                if self.gate == 6:
+                    self.gate = 1
 
         return msg
 
