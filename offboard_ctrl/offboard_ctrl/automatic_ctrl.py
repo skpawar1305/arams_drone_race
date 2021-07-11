@@ -61,7 +61,6 @@ class OffboardControl(Node):
         self.timestamp = msg.timestamp
 
     def run(self):
-
         self.trajectorysetpoint()
         self.offboard_control_mode()
 
@@ -164,6 +163,9 @@ class OffboardControl(Node):
         # Yellow
         elif self.gate == 5:
             hsv_val = [26,42,42,32,255,238]
+        # Blank
+        elif self.gate == 6:
+            hsv_val = [0,0,0,0,0,0]
 
         # blur the image with a 3x3 kernel to remove noise
         frame_blur = cv2.blur(msg, (3, 3))
@@ -342,8 +344,6 @@ class OffboardControl(Node):
             else:
                 self.step = 0.5
                 self.gate += 1
-                if self.gate == 6:
-                    self.gate = 1
 
         if self.step > 0:
             i = 161
@@ -354,6 +354,9 @@ class OffboardControl(Node):
                         if self.step == 3.5:
                             self.mfb = 0.3
                             self.step = 4
+                            self.move_right = True
+                            self.move_forward = True
+                            self.rotate_anti = True
                     else:
                         self.move_right = False
 
