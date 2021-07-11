@@ -108,7 +108,7 @@ class OffboardControl(Node):
         msg.timestamp = self.timestamp
         msg.x = self.poslist[0] + move_fb * math.cos(math.radians(self.yaw_value)) + move_lr * math.cos(math.radians(self.yaw_value + 90))
         msg.y = self.poslist[1] + move_fb * math.sin(math.radians(self.yaw_value)) + move_lr * math.sin(math.radians(self.yaw_value + 90))
-        msg.z = -1.5
+        msg.z = -1.7
 
         msg.yaw = math.radians(self.yaw_value)
 
@@ -183,14 +183,11 @@ class OffboardControl(Node):
         frame_hsv = cv2.cvtColor(frame_blur, cv2.COLOR_BGR2HSV)
         frame_thr = cv2.inRange(frame_hsv, (hsv_val[0], hsv_val[1], hsv_val[2]), (hsv_val[3], hsv_val[4], hsv_val[5]))
 
-        frame_crop = frame_thr[80:120, 140:180]
-        contours2, _ = cv2.findContours(frame_crop, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
         contours, hierarchy = cv2.findContours(frame_thr, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         if self.step == 0:
             print("step0")
-            if abs(self.poslist[2] + 1.5) < 0.2:
+            if abs(self.poslist[2] + 1.7) < 0.2:
                 self.step += 1
 
         if self.step == 0.5:
@@ -309,7 +306,6 @@ class OffboardControl(Node):
             self.mlr = 2.0
             self.mfb = 2.2
             print("step3")
-            self.check = 3.31
             if len(contours) != 0:
                 # draw in blue the contours that were found
                 cv2.drawContours(msg, contours, -1, 255, 3)
@@ -331,9 +327,9 @@ class OffboardControl(Node):
 
         if self.step == 3.3:
             self.move_right = True
-            self.rv = 1.2
-            self.mfb = 1.0
-            self.mlr = 1.5
+            self.rv = 1.0
+            self.mfb = 0.5
+            self.mlr = 1.4
             print("step3.3")
             if len(contours) != 0:
                 # draw in blue the contours that were found
@@ -361,10 +357,10 @@ class OffboardControl(Node):
                 else:
                     self.step = 1
 
-                if h < 155:
+                if h < 225:
                     self.move_forward = True
                     self.move_backward = False
-                elif h > 165:
+                elif h > 230:
                     self.move_backward = True
                     self.move_forward = False
                 else:
@@ -378,8 +374,9 @@ class OffboardControl(Node):
                     self.step = 4
 
         if self.step == 4:
+            self.mfb = 2.6
             self.rv = 0.6
-            self.mlr = 2.0
+            self.mlr = 2.4
             print("step4")
             self.move_right = False
             self.rotate_anti = False
