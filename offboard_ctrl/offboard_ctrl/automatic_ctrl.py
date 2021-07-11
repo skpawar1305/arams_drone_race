@@ -291,7 +291,7 @@ class OffboardControl(Node):
                 if h > 10:
                     # draw the biggest contour (c) in green
                     cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
-                if w/h < 1.35:
+                if w/h < 1.25:
                     self.step = 3.5
             else:
                 self.move_forward = False
@@ -346,11 +346,14 @@ class OffboardControl(Node):
                     self.gate = 1
 
         if self.step > 0:
-            i = 166
-            for i in range(196):
+            i = 161
+            for i in range(201):
                 if self.lidar_dist.ranges[i] > 1.5:
-                    if self.lidar_dist.ranges[i] < 4.5:
+                    if self.lidar_dist.ranges[i] < 5.5:
                         self.move_right = True
+                        if self.step == 3.5:
+                            self.mfb = 0.3
+                            self.step = 4
                     else:
                         self.move_right = False
 
