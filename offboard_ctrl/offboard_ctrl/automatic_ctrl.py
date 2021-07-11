@@ -184,8 +184,8 @@ class OffboardControl(Node):
 
         if self.step == 0.5:
             self.rv = 1.8
-            self.mfb = 1.0
-            self.mlr = 0.2
+            self.mfb = 1.4
+            self.mlr = 0.4
             print("step0.5")
             if len(contours) != 0:
                 # draw in blue the contours that were founded
@@ -199,12 +199,12 @@ class OffboardControl(Node):
                     # draw the biggest contour (c) in green
                     cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
                     self.move_forward = False
-                    self.move_left = False
+                    self.move_right = False
                     self.rotate_anti = False
                     self.step = 1
             else:
                 self.move_forward = True
-                self.move_left = True
+                self.move_right = True
                 self.rotate_anti = True
 
         if self.step == 1:
@@ -261,6 +261,16 @@ class OffboardControl(Node):
                     # draw the biggest contour (c) in green
                     cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
 
+                i = 171
+                for i in range(191):
+                    if self.lidar_dist.ranges[i] > 1.5:
+                        if self.lidar_dist.ranges[i] < 2.5:
+                            self.move_backward = False
+                            self.move_forward = False
+                            self.move_left = True
+                        else:
+                            self.move_left = False
+
                 if h < 215:
                     self.move_forward = True
                     self.move_backward = False
@@ -270,9 +280,9 @@ class OffboardControl(Node):
                 else:
                     self.move_forward = False
                     self.move_backward = False
-                    self.step += 0.5
-            elif len(contours2) == 0:
-                self.step += 0.5
+                    self.step = 3
+            else:
+                self.step = 3
 
         if self.step == 2.5:
             self.rv = 2.4
@@ -298,14 +308,14 @@ class OffboardControl(Node):
                 else:
                     self.rotate_anti = False
                     self.rotate_clock = False
-                    self.step += 0.5
-            elif len(contours2) == 0:
-                self.step += 0.5
+                    self.step = 3
 
         if self.step == 3:
             self.rv = 4.8
             self.mlr = 4.5
+            self.mfb = 4.0
             print("step3")
+            self.check = 3.31
             if len(contours) != 0:
                 # draw in blue the contours that were founded
                 cv2.drawContours(msg, contours, -1, 255, 3)
@@ -317,23 +327,56 @@ class OffboardControl(Node):
                 if h > 10:
                     # draw the biggest contour (c) in green
                     cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
-
-                if len(contours2) != 0:
-                    self.move_left = True
-
                 if w/h < 1.35:
-                    self.move_forward = True
-                    self.move_left = True
-                    self.rotate_clock = True
-                elif len(contours2) == 0:
-                    self.step += 1
-                else:
-                    self.move_forward = False
-                    self.move_left = False
-                    self.rotate_clock = False
-                    self.step += 1
-            elif len(contours2) == 0:
-                self.step += 1
+                    self.step = 3.3
+            else:
+                self.move_forward = False
+                self.move_left = False
+                self.rotate_clock = False
+                self.step = 4
+
+        if self.step == 3.1:
+            self.mfb = 1.0
+            print("step3.1")
+            self.move_left = True
+            if self.lidar_dist.ranges[180] > 5.0:
+                self.move_left = False
+                self.move_forward = True
+                self.step = 3.3
+
+        if self.step == 3.2:
+            print("step3.2")
+            self.move_forward = True
+            i = 261
+            checked = True
+            for i in range(281):
+                if self.lidar_dist.ranges[i] > 5.0:
+                    checked = False
+            if checked == True:
+                self.move_forward = False
+                self.step = 3.3
+
+        if self.step == 3.3:
+            print("step3.3")
+            self.move_right = True           
+            if self.check == 3.31:
+                print("check3.31")
+                if self.lidar_dist.ranges[180] != 0:
+                    if self.lidar_dist.ranges[180] < 5:
+                        self.check = 3.33
+            if self.check == 3.32:
+                print("check3.32")
+                self.check = 3.33
+                i = 171
+                for i in range(191):
+                    if self.lidar_dist.ranges[i] > 5:
+                        pass
+                    else:
+                        self.check = 3.32
+            if len(contours) == 0:
+                #self.move_forward = True
+                print("check3.33")
+                self.step = 4
 
         if self.step == 4:
             self.rv = 1.2
@@ -353,15 +396,13 @@ class OffboardControl(Node):
                     cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
                     self.move_forward = True
                 else:
-                    self.move_right = False
-                    self.move_forward = False
+                    #self.move_right = False
                     self.step = 0.5
                     self.gate += 1
                     if self.gate == 6:
                         self.gate = 1
             else:
-                self.move_right = False
-                self.move_forward = False
+                #self.move_right = False
                 self.step = 0.5
                 self.gate += 1
                 if self.gate == 6:
