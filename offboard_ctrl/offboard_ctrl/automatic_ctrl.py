@@ -301,23 +301,45 @@ class OffboardControl(Node):
 
         if self.step == 3.5:
             self.rv = 1.2
-            self.mlr = 2.0
+            self.mlr = 3.0
             print("step3.5")
             self.move_right = True
+            if len(contours) != 0:
+                self.move_forward = True
+
+                # draw in blue the contours that were found
+                cv2.drawContours(msg, contours, -1, 255, 3)
+
+                # find the biggest countour (c) by the area
+                c = max(contours, key = cv2.contourArea)
+                x,y,w,h = cv2.boundingRect(c)
+
+                if h > 10:
+                    # draw the biggest contour (c) in green
+                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
             if len(contours2) == 0:
-                self.rotate_anti = True
-                self.step = 0.5
-                self.gate += 1
-                if self.gate == 6:
-                    self.gate = 1
+                self.move_right = True
+                self.step = 4
 
         if self.step == 4:
             self.rv = 1.2
             self.mlr = 2.0
             print("step4")
 
-            if len(contours) == 0:
-                self.rotate_anti = True
+            if len(contours) != 0:
+                self.move_forward = True
+
+                # draw in blue the contours that were found
+                cv2.drawContours(msg, contours, -1, 255, 3)
+
+                # find the biggest countour (c) by the area
+                c = max(contours, key = cv2.contourArea)
+                x,y,w,h = cv2.boundingRect(c)
+
+                if h > 10:
+                    # draw the biggest contour (c) in green
+                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
+            else:
                 self.step = 0.5
                 self.gate += 1
                 if self.gate == 6:
@@ -327,7 +349,7 @@ class OffboardControl(Node):
             i = 166
             for i in range(196):
                 if self.lidar_dist.ranges[i] > 1.5:
-                    if self.lidar_dist.ranges[i] < 2.5:
+                    if self.lidar_dist.ranges[i] < 4.5:
                         self.move_right = True
                     else:
                         self.move_right = False
