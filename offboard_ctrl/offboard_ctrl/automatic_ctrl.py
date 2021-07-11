@@ -261,15 +261,6 @@ class OffboardControl(Node):
                     # draw the biggest contour (c) in green
                     cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
 
-                i = 171
-                for i in range(191):
-                    if self.lidar_dist.ranges[i] > 1.5:
-                        if self.lidar_dist.ranges[i] < 2.5:
-                            self.move_forward = False
-                            self.move_left = True
-                        else:
-                            self.move_left = False
-
                 if h < 215:
                     self.move_forward = True
                     self.move_backward = False
@@ -327,7 +318,15 @@ class OffboardControl(Node):
                 if self.gate == 6:
                     self.gate = 1
 
-        return frame_crop
+        i = 166
+        for i in range(196):
+            if self.lidar_dist.ranges[i] > 1.5:
+                if self.lidar_dist.ranges[i] < 2.5:
+                    self.move_right = True
+                else:
+                    self.move_right = False
+
+        return msg
 
 def main(args=None):
    rclpy.init(args=args)
