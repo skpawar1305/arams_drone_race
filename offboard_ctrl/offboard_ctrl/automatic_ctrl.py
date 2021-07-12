@@ -50,6 +50,7 @@ class OffboardControl(Node):
 
         self.step = 0
         self.gate = 1
+        self.landing = 0
 
     def lidar_callback(self, msg):
         self.lidar_dist = msg
@@ -78,37 +79,29 @@ class OffboardControl(Node):
 
         elif self.gate == 7:
             self.move_forward = False
-            x1 = self.poslist[0]
-            y1 = self.poslist[1]
-            self.yaw1 = self.yaw_value
+            self.x1 = [self.poslist[0],0.0,0.0,0.0]
+            self.y1 = [self.poslist[1],0.0,0.0,0.0]
+            self.z1 = [-5.5,-6.5,-2.5,0.0]
+            self.yaw1 = [self.yaw_value,90.0,90.0,0.0]
 
-            self.dest = [x1,y1,-5.5]
             self.trajectory_go_home()
             self.offboard_control_mode()
             if self.c == 20:
                 self.vehicle_command(VehicleCommand().VEHICLE_CMD_DO_SET_MODE,1.0,6.0)
                 self.arm()
             self.c += 1
-            if abs(self.poslist[0] - x1) < 0.2 and abs(self.poslist[1] - y1) < 0.2 and abs(self.poslist[2] + 5.5) < 0.2:
-                self.gate = 8
-                print("Landing")
-
-        elif self.gate == 8:
-            x1 = 0.0
-            y1 = 0.0
-            self.yaw1 = 90.0
-
-            self.dest = [x1,y1,-6.5]
-            self.trajectory_go_home()
-            self.offboard_control_mode()
-            if self.c == 20:
-                self.vehicle_command(VehicleCommand().VEHICLE_CMD_DO_SET_MODE,1.0,6.0)
-                self.arm()
-            self.c += 1
-            if abs(self.poslist[0] - x1) < 0.2 and abs(self.poslist[1] - y1) < 0.2:
-                self.disarm()
-                self.gate = 9
-                print("Reached Home")
+            print(self.landing)
+            if self.landing == 0:
+                if abs(self.poslist[2] - self.z1[self.landing]) < 0.3:
+                    self.landing += 1
+            else:
+                if abs(self.poslist[0] - self.x1[self.landing]) < 0.2 and abs(self.poslist[1] - self.y1[self.landing]) < 0.2 and abs(self.poslist[2] - self.z1[self.landing]) < 0.4:
+                    self.landing += 1
+                    if self.landing == 3:
+                        print("Reached Home")
+                        self.disarm
+                        exit()
+                    print("Landing")
 
     def arm(self):
         self.vehicle_command(VehicleCommand().VEHICLE_CMD_COMPONENT_ARM_DISARM,1.0,0.0)
@@ -161,11 +154,11 @@ class OffboardControl(Node):
 
         msg = TrajectorySetpoint()
         msg.timestamp = self.timestamp
-        msg.x = self.dest[0]
-        msg.y = self.dest[1]
-        msg.z = self.dest[2]
+        msg.x = self.x1[self.landing]
+        msg.y = self.y1[self.landing]
+        msg.z = self.z1[self.landing]
 
-        msg.yaw = math.radians(self.yaw1)
+        msg.yaw = math.radians(self.yaw1[self.landing])
 
         self.trajectory_setpoint_publisher.publish(msg)
 
@@ -462,7 +455,7 @@ class OffboardControl(Node):
                 self.step = 0.5
                 self.gate += 1
                 if self.gate == 6:
-                    self.mfb = 5.5
+                    self.mfb = 4.0
 
         if self.step > 0:
             if self.move_backward == True:
