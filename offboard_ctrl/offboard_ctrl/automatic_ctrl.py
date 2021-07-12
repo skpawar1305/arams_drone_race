@@ -149,7 +149,7 @@ class OffboardControl(Node):
         msg.x = self.poslist[0] + move_fb * math.cos(math.radians(self.yaw_value)) + move_lr * math.cos(math.radians(self.yaw_value + 90))
         msg.y = self.poslist[1] + move_fb * math.sin(math.radians(self.yaw_value)) + move_lr * math.sin(math.radians(self.yaw_value + 90))
         if self.gate < 6:
-            msg.z = -1.7
+            msg.z = -1.75
         else:
             msg.z = -3.0
 
@@ -246,7 +246,7 @@ class OffboardControl(Node):
 
         if self.step == 0:
             print("step0")
-            if abs(self.poslist[2] + 1.7) < 0.2:
+            if abs(self.poslist[2] + 1.75) < 0.2:
                 self.step += 1
 
         if self.step == 0.5:
@@ -316,6 +316,7 @@ class OffboardControl(Node):
                 self.rotate_clock = False
 
         if self.step == 2:
+            self.mfb = 2.7
             print("step2")
             if len(contours) != 0:
                 # draw in blue the contours that were founded
@@ -363,7 +364,7 @@ class OffboardControl(Node):
         if self.step == 3:
             self.rv = 2.2
             self.mlr = 2.0
-            self.mfb = 2.2
+            self.mfb = 1.7
             print("step3")
             if len(contours) != 0:
                 # draw in blue the contours that were found
@@ -376,20 +377,20 @@ class OffboardControl(Node):
                 if h > 10:
                     # draw the biggest contour (c) in green
                     cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
-                if w/h < 1.45:
-                    self.step = 3.3
+                if w/h < 1.55:
+                    self.step = 3.5
                 else:
                     self.move_forward = True
                     self.move_left = False
                     self.rotate_clock = False
                     self.step = 4
 
-        if self.step == 3.3:
+        if self.step == 3.5:
             self.move_right = True
             self.rv = 1.0
-            self.mfb = 0.5
-            self.mlr = 1.4
-            print("step3.3")
+            self.mfb = 0.3
+            self.mlr = 1.0
+            print("step3.5")
             if len(contours) != 0:
                 # draw in blue the contours that were found
                 cv2.drawContours(msg, contours, -1, 255, 3)
@@ -433,7 +434,7 @@ class OffboardControl(Node):
                     self.step = 4
 
         if self.step == 4:
-            self.mfb = 2.6
+            self.mfb = 3.0
             self.rv = 0.6
             self.mlr = 2.4
             print("step4")
