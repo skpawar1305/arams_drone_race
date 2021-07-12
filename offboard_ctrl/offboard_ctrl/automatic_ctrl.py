@@ -124,10 +124,10 @@ class OffboardControl(Node):
             rotate_value = self.rv
         else:
             rotate_value = 0.0
-        if self.move_forward:
-            move_fb = self.mfb
-        elif self.move_backward:
+        if self.move_backward:
             move_fb = -self.mfb
+        elif self.move_forward:
+            move_fb = self.mfb
         else:
             move_fb = 0.0
         if self.move_right:
@@ -204,18 +204,7 @@ class OffboardControl(Node):
             self.pub.publish(out_msg)
 
     def find_gates(self, msg):      
-
-        if self.step > 0:
-            # lidar check
-            if 0.4 <= self.lidar_dist.ranges[180] <= 2.0:
-                if self.lidar_dist.ranges[170] < self.lidar_dist.ranges[190]:
-                    self.move_right = True
-                else:
-                    self.move_left = True
-            else:
-                self.move_right = False
-                self.move_left = False
-
+                        
         # Blue
         if self.gate == 1:
             hsv_val = [116,36,48,125,255,255]
@@ -248,6 +237,21 @@ class OffboardControl(Node):
             print("step0")
             if abs(self.poslist[2] + 1.65) < 0.2:
                 self.step += 1
+
+        if self.step > 0:
+            i = 171
+            for i in range(191):
+                if self.lidar_dist.ranges[i] > 0.5:
+                    if self.lidar_dist.ranges[i] < 2:
+                        self.move_backward = True
+                        if self.lidar_dist.ranges[169] > self.lidar_dist.ranges[193]:
+                            self.move_right = True
+                        else:
+                            self.move_left = True
+                    else:
+                        self.move_right = False
+                        self.move_left = False
+                        self.move_backward = False
 
         if self.step == 0.5:
             self.rv = 1.8
@@ -387,7 +391,7 @@ class OffboardControl(Node):
 
         if self.step == 3.5:
             self.move_right = True
-            self.rv = 1.2
+            self.rv = 1.4
             self.mfb = 0.3
             self.mlr = 1.0
             print("step3.5")
@@ -459,6 +463,11 @@ class OffboardControl(Node):
                 self.gate += 1
                 if self.gate == 6:
                     self.mfb = 5.5
+
+        if self.step > 0:
+            if self.move_backward == True:
+                self.mlr = 1.0
+                self.mfb = 1.0
 
         return msg
 
