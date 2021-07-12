@@ -149,7 +149,7 @@ class OffboardControl(Node):
         msg.x = self.poslist[0] + move_fb * math.cos(math.radians(self.yaw_value)) + move_lr * math.cos(math.radians(self.yaw_value + 90))
         msg.y = self.poslist[1] + move_fb * math.sin(math.radians(self.yaw_value)) + move_lr * math.sin(math.radians(self.yaw_value + 90))
         if self.gate < 6:
-            msg.z = -1.75
+            msg.z = -1.65
         else:
             msg.z = -3.0
 
@@ -246,7 +246,7 @@ class OffboardControl(Node):
 
         if self.step == 0:
             print("step0")
-            if abs(self.poslist[2] + 1.75) < 0.2:
+            if abs(self.poslist[2] + 1.65) < 0.2:
                 self.step += 1
 
         if self.step == 0.5:
@@ -316,7 +316,7 @@ class OffboardControl(Node):
                 self.rotate_clock = False
 
         if self.step == 2:
-            self.mfb = 2.7
+            self.mfb = 2.5
             print("step2")
             if len(contours) != 0:
                 # draw in blue the contours that were founded
@@ -387,7 +387,7 @@ class OffboardControl(Node):
 
         if self.step == 3.5:
             self.move_right = True
-            self.rv = 1.0
+            self.rv = 1.2
             self.mfb = 0.3
             self.mlr = 1.0
             print("step3.5")
