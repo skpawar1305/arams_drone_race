@@ -50,7 +50,6 @@ class OffboardControl(Node):
 
         self.step = 0
         self.gate = 1
-        self.final_pose = [0.0,0.0,0.0]
 
     def lidar_callback(self, msg):
         self.lidar_dist = msg
@@ -74,24 +73,41 @@ class OffboardControl(Node):
 
         if self.gate == 6:
             print("Going Home")
-            if abs(self.poslist[2] + 5) < 0.2:
+            if abs(self.poslist[2] + 3.0) < 0.2:
                 self.gate = 7
 
         elif self.gate == 7:
-            x1 = 0.0
-            y1 = 0.0
-            self.yaw1 = 90.0
+            self.move_forward = False
+            x1 = self.poslist[0]
+            y1 = self.poslist[1]
+            self.yaw1 = self.yaw_value
 
-            self.dest = [x1,y1,-5.0]
+            self.dest = [x1,y1,-5.5]
             self.trajectory_go_home()
             self.offboard_control_mode()
             if self.c == 20:
                 self.vehicle_command(VehicleCommand().VEHICLE_CMD_DO_SET_MODE,1.0,6.0)
                 self.arm()
             self.c += 1
-            if abs(self.poslist[0] - x1) < 0.2 and abs(self.poslist[1] - y1) < 0.2 and abs(self.poslist[2] + 5) < 0.2:
-                self.vehicle_command(VehicleCommand().VEHICLE_CMD_COMPONENT_ARM_DISARM,0.0,0.0)
+            if abs(self.poslist[0] - x1) < 0.2 and abs(self.poslist[1] - y1) < 0.2 and abs(self.poslist[2] + 5.5) < 0.2:
                 self.gate = 8
+                print("Landing")
+
+        elif self.gate == 8:
+            x1 = 0.0
+            y1 = 0.0
+            self.yaw1 = 90.0
+
+            self.dest = [x1,y1,-6.5]
+            self.trajectory_go_home()
+            self.offboard_control_mode()
+            if self.c == 20:
+                self.vehicle_command(VehicleCommand().VEHICLE_CMD_DO_SET_MODE,1.0,6.0)
+                self.arm()
+            self.c += 1
+            if abs(self.poslist[0] - x1) < 0.2 and abs(self.poslist[1] - y1) < 0.2:
+                self.disarm()
+                self.gate = 9
                 print("Reached Home")
 
     def arm(self):
@@ -135,7 +151,7 @@ class OffboardControl(Node):
         if self.gate < 6:
             msg.z = -1.7
         else:
-            msg.z = -5.0
+            msg.z = -3.0
 
         msg.yaw = math.radians(self.yaw_value)
 
@@ -441,7 +457,7 @@ class OffboardControl(Node):
                 self.step = 0.5
                 self.gate += 1
                 if self.gate == 6:
-                    self.mfb = 6.5
+                    self.mfb = 5.5
 
         return msg
 
