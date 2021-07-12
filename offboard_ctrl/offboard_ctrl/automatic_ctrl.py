@@ -63,7 +63,11 @@ class OffboardControl(Node):
 
     def run(self):
         if self.gate <= 6:
-            self.trajectorysetpoint()
+            if self.step < 8:
+                self.trajectorysetpoint()
+            if self.step == 8:
+                self.trajectory_do_loop()
+
             self.offboard_control_mode()
 
             if self.c == 20:
@@ -137,16 +141,44 @@ class OffboardControl(Node):
         if self.yaw_value < 0:
             self.yaw_value += 360
 
+        x_yaw = math.cos(math.radians(self.yaw_value))
+        y_yaw = math.sin(math.radians(self.yaw_value))
+
         msg = TrajectorySetpoint()
         msg.timestamp = self.timestamp
-        msg.x = self.poslist[0] + move_fb * math.cos(math.radians(self.yaw_value)) + move_lr * math.cos(math.radians(self.yaw_value + 90))
-        msg.y = self.poslist[1] + move_fb * math.sin(math.radians(self.yaw_value)) + move_lr * math.sin(math.radians(self.yaw_value + 90))
+        msg.x = self.poslist[0] + move_fb * x_yaw + move_lr * math.cos(math.radians(self.yaw_value + 90))
+        msg.y = self.poslist[1] + move_fb * y_yaw + move_lr * math.sin(math.radians(self.yaw_value + 90))
         if self.gate < 6:
             msg.z = -1.65
         else:
             msg.z = -3.0
 
         msg.yaw = math.radians(self.yaw_value)
+
+        self.trajectory_setpoint_publisher.publish(msg)
+
+    def trajectory_do_loop(self):
+
+        x_yaw = math.cos(math.radians(self.yaw_value))
+        y_yaw = math.sin(math.radians(self.yaw_value))
+
+        self.move_forward = False
+        self.x2 = [self.gate_pose[0] + 6 * x_yaw, self.gate_pose[0], self.gate_pose[0] - 5 * x_yaw,self.gate_pose[0] + 1.2 * x_yaw]
+        self.y2 = [self.gate_pose[1] + 6 * y_yaw, self.gate_pose[1], self.gate_pose[1] - 5 * y_yaw,self.gate_pose[1] + 1.2 * y_yaw]
+        self.z2 = [-3.5,-6.5,-3.5,-1.65]
+
+        msg = TrajectorySetpoint()
+        msg.timestamp = self.timestamp
+        msg.x = self.x2[self.loop]
+        msg.y = self.y2[self.loop]
+        msg.z = self.z2[self.loop]
+
+        msg.yaw = math.radians(self.yaw_value)
+
+        if abs(self.poslist[0] - self.x2[self.loop]) < 0.5 and abs(self.poslist[1] - self.y2[self.loop]) < 0.5 and abs(self.poslist[2] - self.z2[self.loop]) < 0.6:
+            self.loop += 1
+            if self.loop == 4:
+                self.step = 0.5
 
         self.trajectory_setpoint_publisher.publish(msg)
 
@@ -248,8 +280,8 @@ class OffboardControl(Node):
 
         if self.step == 0.5:
             self.rv = 1.8
-            self.mfb = 1.4
-            self.mlr = 0.4
+            self.mfb = 0.7
+            self.mlr = 0.1
             print("step0.5")
             if len(contours) != 0:
                 # draw in blue the contours that were found
@@ -452,10 +484,11 @@ class OffboardControl(Node):
                     # draw the biggest contour (c) in green
                     cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
             else:
-                self.step = 0.5
+                self.step = 8
+                self.loop = 0
+                self.gate_pose = self.poslist
                 self.gate += 1
-                if self.gate == 6:
-                    self.mfb = 4.0
+                self.mfb = 4.0
 
         if self.step > 0:
             if self.move_backward == True:
