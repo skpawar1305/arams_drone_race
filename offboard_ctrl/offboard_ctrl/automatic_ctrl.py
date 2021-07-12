@@ -65,7 +65,8 @@ class OffboardControl(Node):
         if self.gate <= 6:
             if self.step < 8:
                 self.trajectorysetpoint()
-            if self.step == 8:
+            if self.step == 8 and self.gate < 6:
+                print("Looping")
                 self.trajectory_do_loop()
 
             self.offboard_control_mode()
@@ -94,7 +95,6 @@ class OffboardControl(Node):
                 self.vehicle_command(VehicleCommand().VEHICLE_CMD_DO_SET_MODE,1.0,6.0)
                 self.arm()
             self.c += 1
-            print(self.landing)
             if self.landing == 0:
                 if abs(self.poslist[2] - self.z1[self.landing]) < 0.3:
                     self.landing += 1
@@ -163,8 +163,8 @@ class OffboardControl(Node):
         y_yaw = math.sin(math.radians(self.yaw_value))
 
         self.move_forward = False
-        self.x2 = [self.gate_pose[0] + 6 * x_yaw, self.gate_pose[0], self.gate_pose[0] - 5 * x_yaw,self.gate_pose[0] + 1.2 * x_yaw]
-        self.y2 = [self.gate_pose[1] + 6 * y_yaw, self.gate_pose[1], self.gate_pose[1] - 5 * y_yaw,self.gate_pose[1] + 1.2 * y_yaw]
+        self.x2 = [self.gate_pose[0] + 6 * x_yaw, self.gate_pose[0], self.gate_pose[0] - 5 * x_yaw, self.gate_pose[0] + 1.5 * x_yaw]
+        self.y2 = [self.gate_pose[1] + 6 * y_yaw, self.gate_pose[1], self.gate_pose[1] - 5 * y_yaw, self.gate_pose[1] + 1.5 * y_yaw]
         self.z2 = [-3.5,-6.5,-3.5,-1.65]
 
         msg = TrajectorySetpoint()
@@ -175,9 +175,13 @@ class OffboardControl(Node):
 
         msg.yaw = math.radians(self.yaw_value)
 
-        if abs(self.poslist[0] - self.x2[self.loop]) < 0.5 and abs(self.poslist[1] - self.y2[self.loop]) < 0.5 and abs(self.poslist[2] - self.z2[self.loop]) < 0.6:
+        if abs(self.poslist[0] - self.x2[self.loop]) < 0.2 and abs(self.poslist[1] - self.y2[self.loop]) < 0.2 and abs(self.poslist[2] - self.z2[self.loop]) < 0.2:
             self.loop += 1
             if self.loop == 4:
+                self.gate += 1
+                if self.gate == 6:
+                    self.mfb = 2.0
+                    self.move_forward = True
                 self.step = 0.5
 
         self.trajectory_setpoint_publisher.publish(msg)
@@ -264,8 +268,8 @@ class OffboardControl(Node):
                 self.step += 1
 
         if self.step > 0:
-            i = 171
-            for i in range(191):
+            i = 165
+            for i in range(196):
                 if self.lidar_dist.ranges[i] > 0.5:
                     if self.lidar_dist.ranges[i] < 2:
                         self.move_backward = True
@@ -456,7 +460,7 @@ class OffboardControl(Node):
                     self.move_forward = False
                     self.move_backward = False
 
-                if w/h > 1.85:
+                if w/h > 1.65:
                     self.move_right = False
                     self.rotate_clock = False
                     self.rotate_anti = False
@@ -487,12 +491,11 @@ class OffboardControl(Node):
                 self.step = 8
                 self.loop = 0
                 self.gate_pose = self.poslist
-                self.gate += 1
                 self.mfb = 4.0
 
         if self.step > 0:
             if self.move_backward == True:
-                self.mlr = 1.0
+                self.mlr = 2.0
                 self.mfb = 1.0
 
         return msg
