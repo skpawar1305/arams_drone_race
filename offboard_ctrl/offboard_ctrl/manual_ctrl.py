@@ -204,7 +204,7 @@ class OffboardControl(Node):
             hsv_val = [0,41,41,0,255,255]
         # Yellow
         elif gate == 5:
-            hsv_val = [26,42,42,32,255,238]
+            hsv_val = [26,42,42,30,255,238]
 
         # blur the image with a 3x3 kernel to remove noise
         frame_blur = cv2.blur(msg, (3, 3))

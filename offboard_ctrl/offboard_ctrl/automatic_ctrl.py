@@ -214,7 +214,7 @@ class OffboardControl(Node):
             hsv_val = [0,41,41,0,255,255]
         # Yellow
         elif self.gate == 5:
-            hsv_val = [26,42,42,32,255,238]
+            hsv_val = [26,42,42,30,255,238]
         # Blank
         elif self.gate == 6:
             hsv_val = [0,0,0,0,0,0]
