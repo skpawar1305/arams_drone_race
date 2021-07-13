@@ -99,7 +99,7 @@ class OffboardControl(Node):
                 if abs(self.poslist[2] - self.z1[self.landing]) < 0.3:
                     self.landing += 1
             else:
-                if abs(self.poslist[0] - self.x1[self.landing]) < 0.2 and abs(self.poslist[1] - self.y1[self.landing]) < 0.2 and abs(self.poslist[2] - self.z1[self.landing]) < 0.4:
+                if abs(self.poslist[0] - self.x1[self.landing]) < 0.3 and abs(self.poslist[1] - self.y1[self.landing]) < 0.3 and abs(self.poslist[2] - self.z1[self.landing]) < 0.4:
                     self.landing += 1
                     if self.landing == 3:
                         print("Reached Home")
@@ -150,6 +150,8 @@ class OffboardControl(Node):
         msg.y = self.poslist[1] + move_fb * y_yaw + move_lr * math.sin(math.radians(self.yaw_value + 90))
         if self.gate < 6:
             msg.z = -1.65
+            if self.step == 2:
+                msg.z = -2.8
         else:
             msg.z = -3.0
 
@@ -163,8 +165,8 @@ class OffboardControl(Node):
         y_yaw = math.sin(math.radians(self.yaw_value))
 
         self.move_forward = False
-        self.x2 = [self.gate_pose[0] + 6 * x_yaw, self.gate_pose[0], self.gate_pose[0] - 5 * x_yaw, self.gate_pose[0] + 1.5 * x_yaw]
-        self.y2 = [self.gate_pose[1] + 6 * y_yaw, self.gate_pose[1], self.gate_pose[1] - 5 * y_yaw, self.gate_pose[1] + 1.5 * y_yaw]
+        self.x2 = [self.gate_pose[0] + 6 * x_yaw, self.gate_pose[0], self.gate_pose[0] - 5 * x_yaw, self.gate_pose[0] + 1.7 * x_yaw]
+        self.y2 = [self.gate_pose[1] + 6 * y_yaw, self.gate_pose[1], self.gate_pose[1] - 5 * y_yaw, self.gate_pose[1] + 1.7 * y_yaw]
         self.z2 = [-3.5,-6.5,-3.5,-1.65]
 
         msg = TrajectorySetpoint()
@@ -175,7 +177,7 @@ class OffboardControl(Node):
 
         msg.yaw = math.radians(self.yaw_value)
 
-        if abs(self.poslist[0] - self.x2[self.loop]) < 0.2 and abs(self.poslist[1] - self.y2[self.loop]) < 0.2 and abs(self.poslist[2] - self.z2[self.loop]) < 0.2:
+        if abs(self.poslist[0] - self.x2[self.loop]) < 0.4 and abs(self.poslist[1] - self.y2[self.loop]) < 0.4 and abs(self.poslist[2] - self.z2[self.loop]) < 0.2:
             self.loop += 1
             if self.loop == 4:
                 self.gate += 1
@@ -268,10 +270,10 @@ class OffboardControl(Node):
                 self.step += 1
 
         if self.step > 0:
-            i = 165
-            for i in range(196):
+            i = 161
+            for i in range(201):
                 if self.lidar_dist.ranges[i] > 0.5:
-                    if self.lidar_dist.ranges[i] < 2:
+                    if self.lidar_dist.ranges[i] < 2.5:
                         self.move_backward = True
                         if self.lidar_dist.ranges[169] > self.lidar_dist.ranges[193]:
                             self.move_right = True
@@ -283,9 +285,9 @@ class OffboardControl(Node):
                         self.move_backward = False
 
         if self.step == 0.5:
-            self.rv = 1.8
-            self.mfb = 0.7
-            self.mlr = 0.1
+            self.rv = 1.6
+            self.mfb = 1.4
+            self.mlr = 1.2
             print("step0.5")
             if len(contours) != 0:
                 # draw in blue the contours that were found
@@ -309,7 +311,7 @@ class OffboardControl(Node):
 
         if self.step == 1:
             self.rv = 1.2
-            self.mfb = 2.0
+            self.mfb = 1.7
             self.mlr = 2.0
             self.move_right = False
             print("step1")
@@ -349,7 +351,7 @@ class OffboardControl(Node):
                 self.rotate_clock = False
 
         if self.step == 2:
-            self.mfb = 2.5
+            self.mfb = 2.8
             print("step2")
             if len(contours) != 0:
                 # draw in blue the contours that were founded
@@ -410,7 +412,7 @@ class OffboardControl(Node):
                 if h > 10:
                     # draw the biggest contour (c) in green
                     cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
-                if w/h < 1.55:
+                if w/h < 1.65:
                     self.step = 3.5
                 else:
                     self.move_forward = True
