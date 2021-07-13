@@ -165,8 +165,8 @@ class OffboardControl(Node):
         y_yaw = math.sin(math.radians(self.yaw_value))
 
         self.move_forward = False
-        self.x2 = [self.gate_pose[0] + 6 * x_yaw, self.gate_pose[0], self.gate_pose[0] - 5 * x_yaw, self.gate_pose[0] + 1.7 * x_yaw]
-        self.y2 = [self.gate_pose[1] + 6 * y_yaw, self.gate_pose[1], self.gate_pose[1] - 5 * y_yaw, self.gate_pose[1] + 1.7 * y_yaw]
+        self.x2 = [self.gate_pose[0] + 6 * x_yaw, self.gate_pose[0], self.gate_pose[0] - 5 * x_yaw, self.gate_pose[0] + 1.8 * x_yaw]
+        self.y2 = [self.gate_pose[1] + 6 * y_yaw, self.gate_pose[1], self.gate_pose[1] - 5 * y_yaw, self.gate_pose[1] + 1.8 * y_yaw]
         self.z2 = [-3.5,-6.5,-3.5,-1.65]
 
         msg = TrajectorySetpoint()
@@ -352,6 +352,8 @@ class OffboardControl(Node):
 
         if self.step == 2:
             self.mfb = 2.8
+            if self.move_forward == True:
+                self.mfb = 3.5
             print("step2")
             if len(contours) != 0:
                 # draw in blue the contours that were founded
