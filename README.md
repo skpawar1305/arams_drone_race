@@ -1,21 +1,39 @@
-#Instructions:
-#In your home directory clone arams_ drone_race using following command:
+# ARAMS project instructions
+
+## Installation
+
+Clone repository:
+
+```
 git clone https://git.fh-aachen.de/skpawar1305/arams_drone_race.git
+```
 
-#In the next step build the cloned package
+Build ros2 package:
+
+```
+cd arams_drone_race
 colcon build
+```
 
-#source it 
+Source it:
+
+```
 source ~/arams_drone_race/install/setup.bash
+``` 
 
-#after launching the gazebo in another terminal launch the flight control file:
-ros2 launch offboard_ctrl fly.launch.py 
+## Usage
 
+Launch the project world and make sure PX4 micrortps client is working
 
-----------------------------------------------------------------------------------------------------------
-#In order to fly the UAV through manual control
-#first you need to install pygame 
+In another terminal, initialise automatic control launch file using:
+
+```
+ros2 launch offboard_ctrl fly.launch.py
+```
+
+To launch it with manual control using keys W,S,A,D,Q,E:
+
+```
 pip install pygame
-
-# run the manual control node
 ros2 run offboard_ctrl manual_ctrl
+```
