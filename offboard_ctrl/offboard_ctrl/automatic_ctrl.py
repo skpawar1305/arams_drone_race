@@ -86,7 +86,7 @@ class OffboardControl(Node):
             self.move_forward = False
             self.x1 = [self.poslist[0],0.0,0.0,0.0]
             self.y1 = [self.poslist[1],0.0,0.0,0.0]
-            self.z1 = [-5.5,-6.5,-2.5,0.0]
+            self.z1 = [-5.5,-6.5,-1.5,0.0]
             self.yaw1 = [self.yaw_value,90.0,90.0,0.0]
 
             self.trajectory_go_home()
@@ -96,7 +96,7 @@ class OffboardControl(Node):
                 self.arm()
             self.c += 1
             if self.landing == 0:
-                if abs(self.poslist[2] - self.z1[self.landing]) < 0.3:
+                if abs(self.poslist[2] - self.z1[self.landing]) < 0.6:
                     self.landing += 1
             else:
                 if abs(self.poslist[0] - self.x1[self.landing]) < 0.3 and abs(self.poslist[1] - self.y1[self.landing]) < 0.3 and abs(self.poslist[2] - self.z1[self.landing]) < 0.4:
@@ -264,7 +264,24 @@ class OffboardControl(Node):
 
         contours, hierarchy = cv2.findContours(frame_thr, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+        if len(contours) != 0:
+            self.contour = True
+            # draw in blue the contours that were founded
+            cv2.drawContours(msg, contours, -1, 255, 3)
+
+            # find the biggest countour (c) by the area
+            c = max(contours, key = cv2.contourArea)
+            x,y,w,h = cv2.boundingRect(c)
+
+            if h > 10:
+                # draw the biggest contour (c) in green
+                cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
+
+        else:
+            self.contour = False
+
         if self.step == 0:
+            self.rv = 4.2
             print("step0")
             if abs(self.poslist[2] + 1.65) < 0.2:
                 self.step += 1
@@ -289,17 +306,8 @@ class OffboardControl(Node):
             self.mfb = 1.4
             self.mlr = 1.2
             print("step0.5")
-            if len(contours) != 0:
-                # draw in blue the contours that were found
-                cv2.drawContours(msg, contours, -1, 255, 3)
-
-                # find the biggest countour (c) by the area
-                c = max(contours, key = cv2.contourArea)
-                x,y,w,h = cv2.boundingRect(c)
-
+            if self.contour:
                 if h > 10:
-                    # draw the biggest contour (c) in green
-                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
                     self.move_forward = False
                     self.move_right = False
                     self.rotate_anti = False
@@ -315,18 +323,7 @@ class OffboardControl(Node):
             self.mlr = 2.0
             self.move_right = False
             print("step1")
-            if len(contours) != 0:
-                # draw in blue the contours that were found
-                cv2.drawContours(msg, contours, -1, 255, 3)
-
-                # find the biggest countour (c) by the area
-                c = max(contours, key = cv2.contourArea)
-                x,y,w,h = cv2.boundingRect(c)
-
-                if h > 10:
-                    # draw the biggest contour (c) in green
-                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
-
+            if self.contour:
                 if x > 10 & (x+w) < 310:
                     if x + w/2 < 150:
                         self.rotate_clock = False
@@ -351,22 +348,13 @@ class OffboardControl(Node):
                 self.rotate_clock = False
 
         if self.step == 2:
-            self.mfb = 2.8
-            if self.move_forward == True:
-                self.mfb = 3.5
+            if self.mfb < 4.0:
+                if w/h > 1.75:
+                    self.mfb += 0.1
+                else:
+                    self.mfb = 2.5
             print("step2")
-            if len(contours) != 0:
-                # draw in blue the contours that were founded
-                cv2.drawContours(msg, contours, -1, 255, 3)
-
-                # find the biggest countour (c) by the area
-                c = max(contours, key = cv2.contourArea)
-                x,y,w,h = cv2.boundingRect(c)
-
-                if h > 10:
-                    # draw the biggest contour (c) in green
-                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
-
+            if self.contour:
                 if x > 10 & (x+w) < 310:
                     if x + w/2 < 150:
                         self.rotate_clock = False
@@ -385,36 +373,21 @@ class OffboardControl(Node):
                     self.rotate_clock = False
                     self.rotate_anti = True
 
-                if h < 155:
+                if h < 145:
                     self.move_forward = True
                     self.move_backward = False
-                elif h > 165:
-                    self.move_backward = True
-                    self.move_forward = False
                 else:
                     self.move_forward = False
                     self.move_backward = False
                     self.step = 3
-            else:
-                self.step = 3
 
         if self.step == 3:
-            self.rv = 2.2
+            self.rv = 3.2
             self.mlr = 2.0
             self.mfb = 1.7
             print("step3")
-            if len(contours) != 0:
-                # draw in blue the contours that were found
-                cv2.drawContours(msg, contours, -1, 255, 3)
-
-                # find the biggest countour (c) by the area
-                c = max(contours, key = cv2.contourArea)
-                x,y,w,h = cv2.boundingRect(c)
-
-                if h > 10:
-                    # draw the biggest contour (c) in green
-                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
-                if w/h < 1.65:
+            if self.contour:
+                if w/h < 1.85:
                     self.step = 3.5
                 else:
                     self.move_forward = True
@@ -424,47 +397,35 @@ class OffboardControl(Node):
 
         if self.step == 3.5:
             self.move_right = True
-            self.rv = 1.4
+            self.rv = 2.9
             self.mfb = 0.3
-            self.mlr = 1.0
+            self.mlr = 1.6
             print("step3.5")
-            if len(contours) != 0:
-                # draw in blue the contours that were found
-                cv2.drawContours(msg, contours, -1, 255, 3)
+            if self.contour:
 
-                # find the biggest countour (c) by the area
-                c = max(contours, key = cv2.contourArea)
-                x,y,w,h = cv2.boundingRect(c)
-
-                if h > 10:
-                    # draw the biggest contour (c) in green
-                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
-
-                if x + w/2 < 140:
+                if x + w/2 < 130:
                     self.move_right = False
                     self.rotate_clock = False
                     self.rotate_anti = True
-                elif x + w/2 > 180:
+                elif x + w/2 > 190:
                     self.move_right = False
                     self.rotate_anti = False
                     self.rotate_clock = True
-                elif 140 <= x + w/2 <= 180:
+                elif 130 <= x + w/2 <= 190:
                     self.rotate_anti = False
                     self.rotate_clock = False
-                else:
-                    self.step = 1
 
-                if h < 225:
+                if h < 215:
                     self.move_forward = True
                     self.move_backward = False
-                elif h > 230:
+                elif h > 240:
                     self.move_backward = True
                     self.move_forward = False
                 else:
                     self.move_forward = False
                     self.move_backward = False
 
-                if w/h > 1.65:
+                if w/h > 1.85:
                     self.move_right = False
                     self.rotate_clock = False
                     self.rotate_anti = False
@@ -478,19 +439,8 @@ class OffboardControl(Node):
             self.move_right = False
             self.rotate_anti = False
 
-            if len(contours) != 0:
+            if self.contour:
                 self.move_forward = True
-
-                # draw in blue the contours that were found
-                cv2.drawContours(msg, contours, -1, 255, 3)
-
-                # find the biggest countour (c) by the area
-                c = max(contours, key = cv2.contourArea)
-                x,y,w,h = cv2.boundingRect(c)
-
-                if h > 10:
-                    # draw the biggest contour (c) in green
-                    cv2.rectangle(msg,(x,y),(x+w,y+h),(0,255,0),2)
             else:
                 self.step = 8
                 self.loop = 0
