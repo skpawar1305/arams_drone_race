@@ -42,6 +42,8 @@ class OffboardControl(Node):
         self.move_left = False
         self.move_right = False
 
+        self.lidar_found = False
+
         self.yaw_value = 90.0
 
         self.rv = 1.2
@@ -279,6 +281,10 @@ class OffboardControl(Node):
 
         else:
             self.contour = False
+            x = 0
+            y = 0
+            w = 0
+            h = 0
 
         if self.step == 0:
             self.rv = 4.2
@@ -287,16 +293,15 @@ class OffboardControl(Node):
                 self.step += 1
 
         if self.step > 0:
-            i = 161
-            for i in range(201):
+            i = 166
+            for i in range(196):
                 if self.lidar_dist.ranges[i] > 0.5:
                     if self.lidar_dist.ranges[i] < 2.5:
                         self.move_backward = True
-                        if self.lidar_dist.ranges[169] > self.lidar_dist.ranges[193]:
-                            self.move_right = True
-                        else:
-                            self.move_left = True
+                        i = 200
+                        self.lidar_found = True
                     else:
+                        self.lidar_found = False
                         self.move_right = False
                         self.move_left = False
                         self.move_backward = False
@@ -348,13 +353,13 @@ class OffboardControl(Node):
                 self.rotate_clock = False
 
         if self.step == 2:
-            if self.mfb < 4.0:
-                if w/h > 1.75:
-                    self.mfb += 0.1
-                else:
-                    self.mfb = 2.5
             print("step2")
             if self.contour:
+                if self.mfb < 4.0:
+                    if w/h > 1.75:
+                        self.mfb += 0.1
+                    else:
+                        self.mfb = 2.5
                 if x > 10 & (x+w) < 310:
                     if x + w/2 < 150:
                         self.rotate_clock = False
@@ -425,7 +430,7 @@ class OffboardControl(Node):
                     self.move_forward = False
                     self.move_backward = False
 
-                if w/h > 1.85:
+                if w/h > 1.8:
                     self.move_right = False
                     self.rotate_clock = False
                     self.rotate_anti = False
@@ -448,9 +453,15 @@ class OffboardControl(Node):
                 self.mfb = 4.0
 
         if self.step > 0:
-            if self.move_backward == True:
-                self.mlr = 2.0
-                self.mfb = 1.0
+            if self.lidar_found:
+                if self.lidar_dist.ranges[169] > 0.5 or self.lidar_dist.ranges[193] > 0.5:
+                    if self.lidar_dist.ranges[169] > self.lidar_dist.ranges[193]:
+                        self.move_right = True
+                    else:
+                        self.move_left = True
+                self.move_backward = True
+                self.mlr = 3.0
+                self.mfb = 2.0
 
         return msg
 
